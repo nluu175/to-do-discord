@@ -1,23 +1,32 @@
 const fs = require("fs");
 const { Client, Collection, Intents } = require("discord.js");
+const { REST } = require("@discordjs/rest");
+const { Routes } = require("discord-api-types/v9");
 
 const config = require("./utils/config");
-const { token } = config;
+const { token, clientId, guildId } = config;
 
 const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
+const rest = new REST({ version: "9" }).setToken(token);
 
-// Registering Commands
-client.commands = new Collection();
-const commandFiles = fs
-  .readdirSync("./commands")
-  .filter((file) => file.endsWith(".js"));
+// --- Registering Commands
+const { registeredCommands } = require("./deploy-commands");
 
-for (const file of commandFiles) {
-  const command = require(`./commands/${file}`);
-  client.commands.set(command.data.name, command);
-}
+(async () => {
+  try {
+    console.log("Started refreshing application (/) commands.");
 
-// Registering Events
+    await rest.put(Routes.applicationGuildCommands(clientId, guildId), {
+      body: registeredCommands,
+    });
+
+    console.log("Successfully reloaded application (/) commands.");
+  } catch (error) {
+    console.error(error);
+  }
+})();
+
+// --- Registering Events
 const eventFiles = fs
   .readdirSync("./events")
   .filter((file) => file.endsWith(".js"));
